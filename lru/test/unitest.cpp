@@ -96,7 +96,7 @@ TEST(UnitTest, OrderTest) {
     lru.put("key2", "value2");
     lru.put("key3", "value3");
 
-    const LRU::lru_list_type &lru_list = lru.recently_used_list();
+    const LRU::lru_list_type &lru_list = lru.get_recent_used_list();
     LRU::lru_list_type::const_iterator iter = lru_list.begin();
 
     CHECK_EQUAL(std::string("key3"), iter->first);

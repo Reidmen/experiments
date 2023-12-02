@@ -35,8 +35,12 @@ class LRU {
     // cache, replacing previous valuee
     void put(const std::string& key, const std::string& value);
 
-    bool empty();
-    unsigned int size();
+    bool empty() const { return lookup_map.empty(); };
+    size_t size() const { return lookup_map.size(); };
+    const lru_list_type& get_recent_used_list() const {
+        return recently_used_list;
+    }
+    const lru_map_type& get_lookup_map() const { return lookup_map; }
 
    private:
     lru_list_type recently_used_list;

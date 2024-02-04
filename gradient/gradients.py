@@ -18,20 +18,25 @@ def compute_analytical_solution(
     return np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly)
 
 
+def add_boundary_conditions(
+    solution: NDarray32,
+    X: NDarray32,
+    Y: NDarray32,
+    Lx: float = 0.01,
+    Ly: float = 0.01,
+) -> None:
+    solution = np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly)
+    solution[1:-1, 1:-1] = 0.0
+
+
 def laplacian_operator(
     array: NDarray32, dx: float = 0.01, dy: float = 0.01
 ) -> NDarray32:
     return (
-        (
-            -4.0 * array[1:-1, 1:-1]
-            + array[1:-1, :-2]
-            + array[1:-1, 2:]
-            + array[:-2, 1:-1]
-            + array[2:, 1:-1]
-        )
-        / dx
-        / dy
-    )
+        -2.0 * array[1:-1, 1:-1] + array[1:-1, :-2] + array[1:-1, 2:]
+    ) / dx / dx + (
+        -2.0 * array[1:-1, 1:-1] + array[:-2, 1:-1] + array[2:, 1:-1]
+    ) / dy / dy
 
 
 def compute_residual(
@@ -134,15 +139,16 @@ def create_mesh_and_rhs(
     dx: float, dy: float, Lx: float, Ly: float
 ) -> tuple[NDarray32, NDarray32, NDarray32, NDarray32]:
     x = np.arange(0.0, Lx, step=dx)
-    y = np.arange(-0.5, 0.5, step=dy)
+    y = np.arange(0.0, Ly, step=dy)
     X, Y = np.meshgrid(x, y)
     rhs = (
-        (-2.0 * np.pi / Lx)
-        * (np.pi / Ly)
+        -(1 / Lx / Lx + 1 / Ly / Ly)
+        * np.pi**2
         * np.sin(np.pi * X / Lx)
         * np.cos(np.pi * Y / Ly)
     )
     solution = np.zeros_like(X)
+    add_boundary_conditions(solution, X, Y, Lx, Ly)
 
     return X, Y, rhs, solution
 
@@ -160,7 +166,7 @@ def test_conjugate_gradient() -> None:
     )
     print(
         f"CG converged in {iterations}\n"
-        f"with relative tolerance {history[-1]} "
+        f"with relative tolerance {history[-1]}\n"
         f"Compute norm to reference {error_to_reference}\n\n"
     )
 

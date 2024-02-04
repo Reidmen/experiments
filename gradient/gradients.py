@@ -1,8 +1,21 @@
+import sys
+
 import numpy as np
 from numpy.typing import NDArray
-from typing import TypeAlias
+
+try:
+    from typing import TypeAlias
+except ImportError:
+    assert sys.version_info >= (3, 9), "Python 3.9 is required"
+
 
 NDarray32: TypeAlias = NDArray[np.float32]
+
+
+def compute_analytical_solution(
+    X: NDarray32, Y: NDarray32, Lx: float, Ly: float
+) -> NDarray32:
+    return np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly)
 
 
 def laplacian_operator(
@@ -97,6 +110,12 @@ def ConjugateGradientDescent(
     return solution, i, history
 
 
+def compute_absolute_error_difference(
+    solution: NDarray32, reference: NDarray32
+) -> np.float32:
+    return np.sqrt(np.sum((solution - reference) ** 2))
+
+
 def compute_norm_to_reference(
     solution: NDarray32,
     reference: NDarray32,
@@ -115,10 +134,10 @@ def create_mesh_and_rhs(
     dx: float, dy: float, Lx: float, Ly: float
 ) -> tuple[NDarray32, NDarray32, NDarray32, NDarray32]:
     x = np.arange(0.0, Lx, step=dx)
-    y = np.arange(0.0, Ly, step=dy)
+    y = np.arange(-0.5, 0.5, step=dy)
     X, Y = np.meshgrid(x, y)
     rhs = (
-        (2.0 * np.pi / Lx)
+        (-2.0 * np.pi / Lx)
         * (np.pi / Ly)
         * np.sin(np.pi * X / Lx)
         * np.cos(np.pi * Y / Ly)
@@ -129,28 +148,39 @@ def create_mesh_and_rhs(
 
 
 def test_conjugate_gradient() -> None:
-    X, Y, rhs, solution = create_mesh_and_rhs(0.01, 0.01, 1.0, 1.0)
+    Lx, Ly = 1.0, 1.0
+    X, Y, rhs, solution = create_mesh_and_rhs(0.01, 0.01, Lx, Ly)
     max_iter, rtol = 1000, 1e-8
-
     solution, iterations, history = ConjugateGradientDescent(
         solution, rhs, max_iter, rtol
     )
+    analytical_solution = compute_analytical_solution(X, Y, Lx, Ly)
+    error_to_reference = compute_absolute_error_difference(
+        solution, analytical_solution
+    )
     print(
-        f"CG converged in {iterations} "
-        f"with relative tolerance {history[-1]}\n"
+        f"CG converged in {iterations}\n"
+        f"with relative tolerance {history[-1]} "
+        f"Compute norm to reference {error_to_reference}\n\n"
     )
 
 
 def test_gradient_descent() -> None:
-    X, Y, rhs, solution = create_mesh_and_rhs(0.01, 0.01, 1.0, 1.0)
-    max_iter, rtol = 10000, 1e-6
+    Lx, Ly = 1.0, 1.0
+    X, Y, rhs, solution = create_mesh_and_rhs(0.01, 0.01, Lx, Ly)
+    max_iter, rtol = 10000, 1e-8
 
     solution, iterations, history = SteppestDescent(
         solution, rhs, max_iter, rtol
     )
+    analytical_solution = compute_analytical_solution(X, Y, Lx, Ly)
+    error_to_reference = compute_absolute_error_difference(
+        solution, analytical_solution
+    )
     print(
-        f"Gradient Descent converged in {iterations} "
+        f"Gradient Descent converged in {iterations}\n"
         f"with relative tolerance {history[-1]}\n"
+        f"Compute norm to reference {error_to_reference}\n\n"
     )
 
 

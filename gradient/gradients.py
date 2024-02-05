@@ -26,7 +26,7 @@ def add_boundary_conditions(
     Ly: float = 0.01,
 ) -> None:
     solution = np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly)
-    solution[1:-1, 1:-1] = 0.0
+    solution[1:-2, 1:-2] = 0.0
 
 
 def laplacian_operator(

@@ -18,7 +18,9 @@ NDarray64: TypeAlias = NDArray[np.float64]
 def compute_analytical_solution(
     X: NDarray64, Y: NDarray64, Lx: float, Ly: float
 ) -> NDarray64:
-    return np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly)
+    return np.array(
+        np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly), dtype=np.float64
+    )
 
 
 def add_boundary_conditions(
@@ -28,8 +30,8 @@ def add_boundary_conditions(
     Lx: float = 0.01,
     Ly: float = 0.01,
 ) -> None:
-    solution = np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly)
-    solution[1:-2, 1:-2] = 0.0
+    solution[0, :] = np.sin(np.pi * X[0, :] / Lx) # (y, x) for solution array
+    solution[-1, :] = -np.sin(np.pi * X[-1, :] / Lx)
 
 
 def laplacian_operator(
@@ -59,13 +61,13 @@ def SteppestDescent(
     rhs: NDarray64,
     max_iter: int,
     relative_tol: float = 1e-6,
-) -> tuple[NDarray64, int, list[np.float32]]:
+) -> tuple[NDarray64, int, list[np.float64]]:
     solution: NDarray64 = array.copy()
     residual: NDarray64 = np.zeros_like(solution)
     operator_on_residual: NDarray64 = np.zeros_like(solution)
 
-    history: list[np.float32] = []
-    diff: np.float32 = np.float32(1e8)
+    history: list[np.float64] = []
+    diff: np.float64 = np.float64(1e8)
     i: int = 0
     while diff > relative_tol and i < max_iter:
         solution_k = solution.copy()
@@ -87,15 +89,15 @@ def ConjugateGradientDescent(
     rhs: NDarray64,
     max_iter: int,
     relative_tol: float = 1e-6,
-) -> tuple[NDarray64, int, list[np.float32]]:
+) -> tuple[NDarray64, int, list[np.float64]]:
     solution: NDarray64 = array.copy()
     residual: NDarray64 = np.zeros_like(solution)
     operator_dot_direction: NDarray64 = np.zeros_like(solution)
     compute_residual(residual, solution, rhs)  # initial residual
     direction: NDarray64 = residual.copy()
 
-    history: list[np.float32] = []
-    diff: np.float32 = np.float32(1e8)
+    history: list[np.float64] = []
+    diff: np.float64 = np.float64(1e8)
     i: int = 0
     while diff > relative_tol and i < max_iter:
         solution_k: NDarray64 = solution.copy()
@@ -120,7 +122,7 @@ def ConjugateGradientDescent(
 
 def compute_absolute_error_difference(
     solution: NDarray64, reference: NDarray64
-) -> np.float32:
+) -> np.float64:
     return np.sqrt(np.sum((solution - reference) ** 2))
 
 
@@ -128,7 +130,7 @@ def compute_norm_to_reference(
     solution: NDarray64,
     reference: NDarray64,
     atol: float = 1e-12,
-) -> np.float32:
+) -> np.float64:
     l2_difference = np.sqrt(np.sum((solution - reference) ** 2))
     l2_reference = np.sqrt(np.sum(reference**2))
 
@@ -156,9 +158,9 @@ def create_mesh_and_rhs(
     return X, Y, rhs, solution
 
 
-def test_conjugate_gradient() -> None:
+def test_conjugate_gradient(dx: float = 0.01, dy: float = 0.01) -> None:
     Lx, Ly = 1.0, 1.0
-    X, Y, rhs, solution = create_mesh_and_rhs(0.01, 0.01, Lx, Ly)
+    X, Y, rhs, solution = create_mesh_and_rhs(dx, dy, Lx, Ly)
     max_iter, rtol = 1000, 1e-8
     solution, iterations, history = ConjugateGradientDescent(
         solution, rhs, max_iter, rtol

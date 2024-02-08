@@ -18,6 +18,7 @@ NDarray64: TypeAlias = NDArray[np.float64]
 def compute_analytical_solution(
     X: NDarray64, Y: NDarray64, Lx: float, Ly: float
 ) -> NDarray64:
+    """Computes analytical_solution solution used as reference."""
     return np.array(
         np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly), dtype=np.float64
     )
@@ -30,6 +31,8 @@ def add_boundary_conditions(
     Lx: float = 0.01,
     Ly: float = 0.01,
 ) -> None:
+    """Imposes dirichlet boundary conditions in solution on
+    solution array"""
     solution[0, :] = np.sin(np.pi * X[0, :] / Lx)  # (y, x) for solution array
     solution[-1, :] = -np.sin(np.pi * X[-1, :] / Lx)
 
@@ -37,6 +40,11 @@ def add_boundary_conditions(
 def laplacian_operator(
     array: NDarray64, dx: float = 0.01, dy: float = 0.01
 ) -> NDarray64:
+    """Computes laplacian operator on the array
+
+    Returns:
+        discrete laplacian operator as NDarray64
+    """
     return (
         -2.0 * array[1:-1, 1:-1] + array[1:-1, :-2] + array[1:-1, 2:]
     ) / dx / dx + (
@@ -47,12 +55,25 @@ def laplacian_operator(
 def compute_residual(
     residual: NDarray64, array: NDarray64, rhs: NDarray64
 ) -> None:
+    """Performs computation of residual `r = b - Ax`
+
+    Parameters:
+        residual: residual array holder as NDarray64
+        rhs: discrete array holding rhs values as NDArray64
+    """
     residual[1:-1, 1:-1] = rhs[1:-1, 1:-1] - laplacian_operator(array)
 
 
 def compute_laplacian_on_array(
     operator_holder: NDarray64, array: NDarray64
 ) -> None:
+    """Performs laplacian computation on array in the coordinates
+    of interest
+
+    Parameters:
+        operator_holder: array holding the laplacian operation
+        array: input array to apply the laplacian to, as NDarray64
+    """
     operator_holder[1:-1, 1:-1] = laplacian_operator(array)
 
 
@@ -62,6 +83,20 @@ def SteppestDescent(
     max_iter: int,
     relative_tol: float = 1e-6,
 ) -> tuple[NDarray64, int, list[np.float64]]:
+    """Implements Gradient Descent algorithm, starting with initial solution
+    array, right hand side (rhs) and parameters for convergence.
+
+    Parameters:
+        array: initial guess for solution array
+        rhs: rhs of the discrete problem Ax = b
+        max_iter: maximum number of iterations
+        relative_tol: tolerance criteria for convergence
+
+    Returns:
+        solution: array as NDarray64
+        i: iteration count for convergence
+        history: history of relative errors
+    """
     solution: NDarray64 = array.copy()
     residual: NDarray64 = np.zeros_like(solution)
     operator_on_residual: NDarray64 = np.zeros_like(solution)
@@ -90,6 +125,20 @@ def ConjugateGradientDescent(
     max_iter: int,
     relative_tol: float = 1e-6,
 ) -> tuple[NDarray64, int, list[np.float64]]:
+    """Implements Conjugate Gradient algorithm, starting with initial solution
+    array, right hand side (rhs) and parameters for convergence.
+
+    Parameters:
+        array: initial guess for solution array
+        rhs: rhs of the discrete problem Ax = b
+        max_iter: maximum number of iterations
+        relative_tol: tolerance criteria for convergence
+
+    Returns:
+        solution: array as NDarray64
+        i: iteration count for convergence
+        history: history of relative errors
+    """
     solution: NDarray64 = array.copy()
     residual: NDarray64 = np.zeros_like(solution)
     operator_dot_direction: NDarray64 = np.zeros_like(solution)
@@ -123,6 +172,7 @@ def ConjugateGradientDescent(
 def compute_absolute_error_difference(
     solution: NDarray64, reference: NDarray64
 ) -> np.float64:
+    """Computes absolute error difference between two solutions"""
     return np.sqrt(np.sum((solution - reference) ** 2))
 
 
@@ -131,6 +181,7 @@ def compute_norm_to_reference(
     reference: NDarray64,
     atol: float = 1e-12,
 ) -> np.float64:
+    """Computes relative error between solution array and reference"""
     l2_difference = np.sqrt(np.sum((solution - reference) ** 2))
     l2_reference = np.sqrt(np.sum(reference**2))
 
@@ -143,6 +194,14 @@ def compute_norm_to_reference(
 def create_mesh_for_analytical_solution(
     dx: float, dy: float, Lx: float, Ly: float
 ) -> tuple[NDarray64, NDarray64, NDarray64]:
+    """Creates mesh for computation, solution array as NDarray64.
+    Mesh is defined by the set of 2D coordinates X, Y
+
+    Returns:
+        X: x-coordinates as NDarray64
+        Y: y-coordinates as NDarray64
+        solution: NDarray64 solution array
+    """
     x = np.arange(0.0, Lx, step=dx)
     y = np.arange(0.0, Ly, step=dy)
     X, Y = np.meshgrid(x, y)
@@ -155,6 +214,8 @@ def create_mesh_for_analytical_solution(
 def create_rhs_for_analytical_solution(
     X: NDarray64, Y: NDarray64, Lx: float, Ly: float
 ) -> NDarray64:
+    """Computes analytical solution as NDarray64 from
+    coordinates X and Y"""
     return np.array(
         -(1 / Lx / Lx + 1 / Ly / Ly)
         * np.pi**2
@@ -187,6 +248,7 @@ def test_conjugate_gradient(
     dy: float = 0.01,
     path_to_test: pathlib.Path = pathlib.Path("tests"),
 ) -> None:
+    """Test Conjugate Gradient algorithm from known analytical solution"""
     Lx, Ly = 1.0, 1.0
     X, Y, solution = create_mesh_for_analytical_solution(dx, dy, Lx, Ly)
     rhs = create_rhs_for_analytical_solution(X, Y, Lx, Ly)
@@ -215,6 +277,7 @@ def test_gradient_descent(
     dy: float = 0.01,
     path_to_test: pathlib.Path = pathlib.Path("tests"),
 ) -> None:
+    """Test Gradient Descent algorithm from known analytical solution"""
     Lx, Ly = 1.0, 1.0
     X, Y, solution = create_mesh_for_analytical_solution(dx, dy, Lx, Ly)
     rhs = create_rhs_for_analytical_solution(X, Y, Lx, Ly)
@@ -242,6 +305,7 @@ def test_gradient_descent(
 def create_specific_rhs(
     X: NDarray64, Y: NDarray64, Lx: float, Ly: float
 ) -> NDarray64:
+    """Creates complex sinusoidal right-hand side"""
     rhs_array = np.array(
         np.sin(np.pi * X / Lx) * np.sin(np.pi * Y / Ly)
         + 2 * np.sin(2 * np.pi * X / Lx) * np.sin(2 * np.pi * Y / Ly)
@@ -254,6 +318,7 @@ def create_specific_rhs(
 def create_mesh_from_parameters(
     dx: float, dy: float, Lx: float, Ly: float
 ) -> tuple[NDarray64, NDarray64, NDarray64]:
+    """Creates mesh and solution array from parameters"""
     x = np.arange(0.0, Lx, step=dx)
     y = np.arange(0.0, Ly, step=dy)
     X, Y = np.meshgrid(x, y)
@@ -269,6 +334,16 @@ def test_conjugate_gradient_specific_rhs(
     Ly: float | int = float(1),
     path_to_file: str | pathlib.Path = "results",
 ) -> None:
+    """Computes test cases for using the conjugate gradient algorithm.
+    Test is defined using parameters M, N, Lx, Ly and path_to_file.
+
+    Parameters:
+        M: discretization number of x-direction
+        N: discretization number of y-direction
+        Lx: length x-direction
+        Ly: length y-direction
+        path_to_file: path to store solutions
+    """
     assert isinstance(M, int) and isinstance(N, int)
     assert M > 0 and N > 0
     assert isinstance(Lx, (int, float)) and isinstance(Ly, (int, float))
@@ -297,6 +372,8 @@ def save_solution(
     N: float,
     path_to_file: str | pathlib.Path,
 ) -> None:
+    """Saves solution field from specified path, checks if path exists,
+    otherwise it creates a new one."""
     if isinstance(path_to_file, str):
         pathlib.Path(path_to_file).mkdir(parents=True, exist_ok=True)
         path_to_figure = pathlib.Path(path_to_file).joinpath(
@@ -318,6 +395,7 @@ def save_solution(
 def save_array_to_png(
     X: NDarray64, Y: NDarray64, solution: NDarray64, figure_path: pathlib.Path
 ) -> None:
+    """Saves solution array as png file using 3D matplotlib"""
     fig = pyplot.figure(figsize=(8, 6))
     axes = mplot3d.Axes3D(fig)
     axes.set_xlabel("X coordinates")

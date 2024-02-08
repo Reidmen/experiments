@@ -30,7 +30,7 @@ def add_boundary_conditions(
     Lx: float = 0.01,
     Ly: float = 0.01,
 ) -> None:
-    solution[0, :] = np.sin(np.pi * X[0, :] / Lx) # (y, x) for solution array
+    solution[0, :] = np.sin(np.pi * X[0, :] / Lx)  # (y, x) for solution array
     solution[-1, :] = -np.sin(np.pi * X[-1, :] / Lx)
 
 
@@ -140,27 +140,38 @@ def compute_norm_to_reference(
         return l2_difference / l2_reference
 
 
-def create_mesh_and_rhs(
+def create_mesh_for_analytical_solution(
     dx: float, dy: float, Lx: float, Ly: float
-) -> tuple[NDarray64, NDarray64, NDarray64, NDarray64]:
+) -> tuple[NDarray64, NDarray64, NDarray64]:
     x = np.arange(0.0, Lx, step=dx)
     y = np.arange(0.0, Ly, step=dy)
     X, Y = np.meshgrid(x, y)
-    rhs = (
-        -(1 / Lx / Lx + 1 / Ly / Ly)
-        * np.pi**2
-        * np.sin(np.pi * X / Lx)
-        * np.cos(np.pi * Y / Ly)
-    )
     solution = np.zeros_like(X)
     add_boundary_conditions(solution, X, Y, Lx, Ly)
 
-    return X, Y, rhs, solution
+    return X, Y, solution
 
 
-def test_conjugate_gradient(dx: float = 0.01, dy: float = 0.01) -> None:
+def create_rhs_for_analytical_solution(
+    X: NDarray64, Y: NDarray64, Lx: float, Ly: float
+) -> NDarray64:
+    return np.array(
+        -(1 / Lx / Lx + 1 / Ly / Ly)
+        * np.pi**2
+        * np.sin(np.pi * X / Lx)
+        * np.cos(np.pi * Y / Ly),
+        dtype=np.float64,
+    )
+
+
+def test_conjugate_gradient(
+    dx: float = 0.01,
+    dy: float = 0.01,
+    path_to_test: pathlib.Path = pathlib.Path("tests"),
+) -> None:
     Lx, Ly = 1.0, 1.0
-    X, Y, rhs, solution = create_mesh_and_rhs(dx, dy, Lx, Ly)
+    X, Y, solution = create_mesh_for_analytical_solution(dx, dy, Lx, Ly)
+    rhs = create_rhs_for_analytical_solution(X, Y, Lx, Ly)
     max_iter, rtol = 1000, 1e-8
     solution, iterations, history = ConjugateGradientDescent(
         solution, rhs, max_iter, rtol
@@ -169,17 +180,27 @@ def test_conjugate_gradient(dx: float = 0.01, dy: float = 0.01) -> None:
     error_to_reference = compute_absolute_error_difference(
         solution, analytical_solution
     )
+    path_to_test.mkdir(parents=True, exist_ok=True)
+    path_to_png = path_to_test.joinpath(
+        f"test_conjugate_gradient_dx{dx}_dy{dy}.png"
+    )
+    save_array_to_png(X, Y, solution, path_to_png)
     print(
         f"CG converged in {iterations}\n"
         f"with relative tolerance {history[-1]}\n"
-        f"Compute norm to reference {error_to_reference}\n\n"
+        f"Absolute error to reference {error_to_reference}\n\n"
     )
 
 
-def test_gradient_descent() -> None:
+def test_gradient_descent(
+    dx: float = 0.01,
+    dy: float = 0.01,
+    path_to_test: pathlib.Path = pathlib.Path("tests"),
+) -> None:
     Lx, Ly = 1.0, 1.0
-    X, Y, rhs, solution = create_mesh_and_rhs(0.01, 0.01, Lx, Ly)
-    max_iter, rtol = 10000, 1e-8
+    X, Y, solution = create_mesh_for_analytical_solution(dx, dy, Lx, Ly)
+    rhs = create_rhs_for_analytical_solution(X, Y, Lx, Ly)
+    max_iter, rtol = 20000, 1e-8
 
     solution, iterations, history = SteppestDescent(
         solution, rhs, max_iter, rtol
@@ -188,10 +209,15 @@ def test_gradient_descent() -> None:
     error_to_reference = compute_absolute_error_difference(
         solution, analytical_solution
     )
+    path_to_test.mkdir(parents=True, exist_ok=True)
+    path_to_png: pathlib.Path = path_to_test.joinpath(
+        f"test_steppest_descent_dx{dx}_dy{dy}.png"
+    )
+    save_array_to_png(X, Y, solution, path_to_png)
     print(
         f"Gradient Descent converged in {iterations}\n"
         f"with relative tolerance {history[-1]}\n"
-        f"Compute norm to reference {error_to_reference}\n\n"
+        f"Absolute error to reference {error_to_reference}\n\n"
     )
 
 

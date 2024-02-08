@@ -164,6 +164,24 @@ def create_rhs_for_analytical_solution(
     )
 
 
+def test_compute_analytical_solution(
+    dx: float = 0.01,
+    dy: float = 0.01,
+    Lx: float = 1.0,
+    Ly: float = 1.0,
+    path_to_test: pathlib.Path = pathlib.Path("tests"),
+) -> None:
+    x = np.arange(0.0, Lx, step=dx, dtype=np.float64)
+    y = np.arange(0.0, Ly, step=dy, dtype=np.float64)
+    X, Y = np.meshgrid(x, y)
+    analytical_solution = compute_analytical_solution(X, Y, Lx, Ly)
+    path_to_test.mkdir(parents=True, exist_ok=True)
+    path_to_png = path_to_test.joinpath(
+        f"analytical_solution_dx{dx}_dy{dy}.png"
+    )
+    save_array_to_png(X, Y, analytical_solution, path_to_png)
+
+
 def test_conjugate_gradient(
     dx: float = 0.01,
     dy: float = 0.01,
@@ -311,6 +329,7 @@ def save_array_to_png(
 
 
 if __name__ == "__main__":
+    test_compute_analytical_solution()
     test_gradient_descent()
     test_conjugate_gradient()
     test_conjugate_gradient_specific_rhs(32, 16)

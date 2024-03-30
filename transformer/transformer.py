@@ -663,15 +663,10 @@ class TransformerLayer(Module):
 
 
 class CrossEntropyLoss(Module):
-    """
-    <a id="CrossEntropyLoss"></a>
+    """Cross Entropy Loss"""
 
-    ## Cross Entropy Loss
-    """
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-
         # Use `jax.vmap` to vectorize the loss function
         self._loss_vmap = jax.vmap(
             self._loss,
@@ -681,19 +676,21 @@ class CrossEntropyLoss(Module):
             ),
         )
 
-    def _loss(self, output: jtype.ArrayLike, target: jtype.ArrayLike):
-        # $$- \sum_k y_k \log \hat{y}_k$$
+    def _loss(
+        self, output: jtype.ArrayLike, target: jtype.ArrayLike
+    ) -> jtype.ArrayLike:
+        # $- \sum_k y_k \log \hat{y}_k$
         return -jax.nn.log_softmax(output)[target]
 
-    def __call__(self, output: jtype.ArrayLike, target: jtype.ArrayLike):
+    def __call__(
+        self, output: jtype.ArrayLike, target: jtype.ArrayLike
+    ) -> jtype.ArrayLike:
         """
         * `output` is the model outputs of shape `[seq_len, n_vocab]`
         * `target` is the target of shape `[seq_len]`
         """
 
         # Use the vectorized loss function and calculate the mean.
-        #
-        # We could have used a for loop to calculate the losses but using vmap is about 10X faster
         return self._loss_vmap(output, target).mean()
 
 
@@ -728,7 +725,7 @@ class AutoregressiveTransformer(Module):
         super().__init__()
         self.n_vocab = n_vocab
         self.d_model = d_model
-        self.loss_func = CrossEntropyLoss()
+        self.loss_function = CrossEntropyLoss()
 
         # For transformer layers
         layers = []
@@ -753,6 +750,9 @@ class AutoregressiveTransformer(Module):
         self.output = Linear(out_key, d_model, n_vocab)
 
     def __call__(self, x: jtype.ArrayLike):
+        if not isinstance(x, jax.Array):
+            x = jax.Array(x)
+
         # Get sequence length
         seq_len = len(x)
         # A mask for attention so that a token can only see tokens before that
@@ -766,14 +766,12 @@ class AutoregressiveTransformer(Module):
         # Final normalization and linear transformation to get the logits
         return self.output(self.norm(x))
 
-    def get_loss(self, x: jtype.ArrayLike):
-        """
-        ### Calculate the loss
-        """
+    def get_loss(self, x: jtype.ArrayLike) -> jax.Array:
+        """Calculate the loss"""
         # Get model outputs
         output = self(x)
         # Cross entropy loss
-        return self.loss_func(output[:-1], x[1:])
+        return self.loss_function(output[:-1], x[1:])
 
     def sample(self, seq: jtype.ArrayLike, length: int = 20):
         """

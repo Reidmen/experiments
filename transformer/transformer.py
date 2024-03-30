@@ -1,16 +1,14 @@
 """
----
-title: Autoregressive Transformer Decoder in JAX from scratch
-    An implementation of a transformer decode on a small text dataset
-    from scratch with adam optimizer.
----
+=================
+Autoregressive Transformer Decoder in JAX from scratch
+An implementation of a transformer decode on a small text
+    dataset with adam optimizer.
+=================
 
 # Autoregressive Transformer Decoder in JAX from scratch
 
 This implementation builds a transformer decoder from ground up.
 [labml](https://github.com/labmlai/labml) for logging and experiment tracking.
-
-I have implemented a simple `Module` class to build basic building blocks upon.
 
 JAX can optimize and differentiate Python pure-functions.
 
@@ -19,7 +17,7 @@ The functions are implemented for a single sample and `jax.vit` can vectorize
 (parallelize) the functions across the batch dimension
 (or any other dimension if needed).
 
-### Contents
+# Contents
 
 * [Module class to help us write the layers](#Module)
 * [Embedding layer](#Embedding)
@@ -50,7 +48,7 @@ from labml import logger
 from labml.logger import Text
 from labml.utils.download import download_file
 
-assert sys.version_info >= (3, 10), "Python >=3.10 required"
+assert sys.version_info >= (3, 8), "Python >=3.8 required"
 
 
 class Module:
@@ -384,7 +382,7 @@ class LayerNorm(Module):
         *,
         eps: float = 1e-5,
         elementwise_affine: bool = True,
-    ):
+    ) -> None:
         """
         * `normalized_shape` $S$ is the shape of the elements
             (except the batch).
@@ -441,7 +439,9 @@ class PrepareForMultiHeadAttention(Module):
     This is used to transform **key**, **query**, and **value** vectors.
     """
 
-    def __init__(self, rnd_key: KeyArray, d_model: int, heads: int, d_k: int):
+    def __init__(
+        self, rnd_key: KeyArray, d_model: int, heads: int, d_k: int
+    ) -> None:
         super().__init__()
         # Linear layer for linear transform
         self.linear = Linear(rnd_key, d_model, heads * d_k)
@@ -489,18 +489,16 @@ class MultiHeadAttention(Module):
     [our PyTorch implementation](https://nn.labml.ai/transformers/mha.html#MHA).
     """
 
-    def __init__(self, rnd_key: KeyArray, heads: int, d_model: int):
+    def __init__(self, rnd_key: KeyArray, heads: int, d_model: int) -> None:
         """
         * `rnd_key` is the PRNG state
         * `heads` is the number of heads.
         * `d_model` is the number of features in the `query`, `key` and `value` vectors.
         """
-
         super().__init__()
 
         # Split the PRNG state
         _, *rnd_keys = jax.random.split(rnd_key, 5)
-
         # Number of features per head
         self.d_k = d_model // heads
         # Number of heads
@@ -525,18 +523,19 @@ class MultiHeadAttention(Module):
     def __call__(
         self,
         *,
-        query: jtype.ArrayLike,
-        key: jtype.ArrayLike,
-        value: jtype.ArrayLike,
-        mask: Optional[jtype.ArrayLike] = None,
-    ):
+        query: jax.Array,
+        key: jax.Array,
+        value: jax.Array,
+        mask: Optional[jax.Array] = None,
+    ) -> None:
         """
         `query`, `key` and `value` are the tensors that store
         collection of *query*, *key* and *value* vectors.
         They have shape `[seq_len, d_model]`.
 
         `mask` has shape `[seq_len, seq_len]` and
-        `mask[i, j]` indicates whether query at position `i` can see key-value at position `j`.
+        `mask[i, j]` indicates whether query at position `i` can see
+        key-value at position `j`.
         """
 
         # Get sequence length

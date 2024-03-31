@@ -279,12 +279,13 @@ class Embedding(Module):
         self, rnd_key: KeyArray, n_embeddings: int, n_dim: int
     ) -> None:
         """
-        * `rnd_key` is the PRNG state
-        * `n_embeddings` is the number of embeddings
-        * `n_dim` is the size of an embedding
+        :param `rnd_key`: is the PRNG state
+        :param `n_embeddings`: is the number of embeddings
+        :param `n_dim`: is the size of an embedding
+
+        Embeddings are initialized from :math:`\mathcal{N}(0, 1)`
         """
         super().__init__()
-        # Embeddings are initialized from $\mathcal{N}(0, 1)$
         self.embeddings = jax.random.normal(rnd_key, (n_embeddings, n_dim))
 
     def __call__(self, ids: jtype.ArrayLike) -> jax.Array:
@@ -337,13 +338,14 @@ class Linear(Module):
 
     def __init__(self, rnd_key: KeyArray, in_features: int, out_features: int):
         """
-        * `rnd_key` is the PRNG state
-        * `in_features` is the number of features in the input
-        * `out_features` is the number of features in the output
+        :param `rnd_key`: is the PRNG state
+        :param `in_features`: is the number of features in the input
+        :param `out_features`: is the number of features in the output
+        Initialized weigths to
+        :math:`\mathcal{U}\Bigg(-\frac{1}{\sqrt{d_{in}}}, \frac{1}{\sqrt{d_{in}}} \Bigg)`
         """
         super().__init__()
         # Initialize weights to
-        # $$\mathcal{U}\Bigg(-\frac{1}{\sqrt{d_{in}}}, \frac{1}{\sqrt{d_{in}}} \Bigg)$$
         rnd_range = 1 / (in_features**0.5)
         self.weight = jax.random.uniform(
             rnd_key,
@@ -351,7 +353,6 @@ class Linear(Module):
             minval=-rnd_range,
             maxval=rnd_range,
         )
-        # Initialize the biases to $0$
         self.bias = jnp.zeros((out_features,))
 
     def __call__(self, x: jtype.ArrayLike) -> jax.Array:
@@ -365,12 +366,14 @@ class LayerNorm(Module):
     This implements the the layer normalization from the paper
     [Layer Normalization](https://papers.labml.ai/paper/1607.06450).
 
-    When input $X \in \mathbb{R}^{L \times C}$ is a sequence of embeddings,
-    where $C$ is the number of channels, $L$ is the length of the sequence.
-    $\gamma \in \mathbb{R}^{C}$ and $\beta \in \mathbb{R}^{C}$.
-    $$\text{LN}(X) = \gamma
-    \frac{X - \underset{C}{\mathbb{E}}[X]}{\sqrt{\underset{C}{Var}[X] + \epsilon}}
-    + \beta$$
+    When input :math:`X \in \mathbb{R}^{L \times C}` is a sequence of embeddings,
+    where :math:`C` is the number of channels, :math:`L` is the length of the sequence.
+    :math:`\gamma \in \mathbb{R}^{C}` and :math:`\beta \in \mathbb{R}^{C}`.
+
+    .. math::
+
+        LN(X) = \gamma
+        \frac{X - \underset{C}{\mathbb{E}}[X]}{\sqrt{\underset{C}{Var}[X] + \epsilon}} + \beta
 
     This is based on
     [our PyTorch implementation](https://nn.labml.ai/normalization/layer_norm/index.html).
@@ -384,13 +387,14 @@ class LayerNorm(Module):
         elementwise_affine: bool = True,
     ) -> None:
         """
-        * `normalized_shape` $S$ is the shape of the elements
+        :param `normalized_shape`: :math:`S` is the shape of the elements
             (except the batch).
          The input should then be
-         $X \in \mathbb{R}^{* \times S[0] \times S[1] \times ... \times S[n]}$
-        * `eps` is $\epsilon$, used in $\sqrt{Var[X] + \epsilon}$
+         .. math::
+             X \in \mathbb{R}^{* \times S[0] \times S[1] \times ... \times S[n]}
+        :param`eps`: is :math:`\epsilon`, used in :math:`\sqrt{Var[X] + \epsilon}`
             for numerical stability
-        * `elementwise_affine` is whether to scale and shift the
+        :param `elementwise_affine`: is whether to scale and shift the
             normalized value
         """
         super().__init__()
@@ -473,15 +477,16 @@ class MultiHeadAttention(Module):
     the paper [Attention Is All You Need](https://papers.labml.ai/paper/1706.03762)
     for given `query`, `key` and `value` vectors.
 
-    $$\mathop{Attention}(Q, K, V) = \underset{seq}{\mathop{softmax}}\Bigg(\frac{Q K^\top}{\sqrt{d_k}}\Bigg)V$$
+    .. math::
+        \mathop{Attention}(Q, K, V) = \underset{seq}{\mathop{softmax}}\Bigg(\frac{Q K^\top}{\sqrt{d_k}}\Bigg)V
 
     In simple terms, it finds keys that matches the query, and gets the values of
      those keys.
 
     It uses dot-product of query and key as the indicator of how matching they are.
-    Before taking the $softmax$ the dot-products are scaled by $\frac{1}{\sqrt{d_k}}$.
+    Before taking the :math:`softmax` the dot-products are scaled by :math:`\frac{1}{\sqrt{d_k}}`.
     This is done to avoid large dot-product values causing softmax to
-    give very small gradients when $d_k$ is large.
+    give very small gradients when :math:`d_k` is large.
 
     Softmax is calculated along the axis of of the sequence (or time) for keys.
 
@@ -798,28 +803,31 @@ class AdamState(NamedTuple):
 
 
 class Adam:
-    """Adam Optimizer
+    r"""Adam Optimizer
 
     This is from paper
      [Adam](https://papers.labml.ai/paper/1412.6980).
 
-    For parameter $\theta_t$ and gradient $g_t$ at step $t$, the Adam
-    algorithm is defined as:,
+    For parameter :math:`\theta_t` and gradient :math:`g_t` at step :math:`t`,
+    the Adam algorithm is defined as:,
 
-    \begin{align}
-    m_t &\leftarrow \beta_1 m_{t-1} + (1 - \beta_1) \cdot g_t \\
-    v_t &\leftarrow \beta_2 v_{t-1} + (1 - \beta_2) \cdot g_t^2 \\
-    \hat{m}_t &\leftarrow \frac{m_t}{1-\beta_1^t} \\
-    \hat{v}_t &\leftarrow \frac{v_t}{1-\beta_2^t} \\
-    \theta_t &\leftarrow \theta_{t-1} - \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
-    \end{align}
-    
-    where $\alpha$, $\beta_1$, $\beta_2$ and $\epsilon$ are scalar hyper
-    parameters.
-    $m_t$ and $v_t$ are first and second order moments.
-    $\hat{m}_t$  and $\hat{v}_t$ are biased corrected moments.
-    $\epsilon$ is used as a fix for division by zero error, but also acts as a
-    form of a hyper-parameter that acts against variance in gradients.
+    .. math::
+        \begin{align}
+        m_t &\leftarrow \beta_1 m_{t-1} + (1 - \beta_1) \cdot g_t \\
+        v_t &\leftarrow \beta_2 v_{t-1} + (1 - \beta_2) \cdot g_t^2 \\
+        \hat{m}_t &\leftarrow \frac{m_t}{1-\beta_1^t} \\
+        \hat{v}_t &\leftarrow \frac{v_t}{1-\beta_2^t} \\
+        \theta_t &\leftarrow \theta_{t-1} -
+        \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
+        \end{align}
+   
+    where :math:`\alpha, \beta_1, \beta_2` and :math:`\epsilon` are scalar
+    hyper parameters.
+    :math:`m_t` and :math:`v_t` are first and second order moments.
+    :math:`\hat{m}_t`  and :math:`\hat{v}_t` are biased corrected moments.
+    :math:`\epsilon` is used as a fix for division by zero error, but also
+    acts as a form of a hyper-parameter that acts against variance in
+    gradients.
     """
 
     def __init__(
@@ -830,10 +838,10 @@ class Adam:
         eps: float = 1e-16,
     ):
         """
-        * `params` is the tree-map of parameters
-        * `lr` is the learning rate $\alpha$
-        * `betas` is a tuple of ($\beta_1$, $\beta_2$)
-        * `eps` is $\hat{\epsilon}$`
+        :param `params`: is the tree-map of parameters
+        :param `lr`: is the learning rate :math:`\alpha`
+        :param `betas`: is a tuple of :math:`(\beta_1, \beta_2)`
+        ;param `eps`: is :math:`\hat{\epsilon}`
         """
 
         super().__init__()

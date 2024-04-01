@@ -10,8 +10,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 **/__pycache__/
-*.py
-*$py.class
 
 # C extensions
 *.so

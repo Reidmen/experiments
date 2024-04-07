@@ -1,5 +1,5 @@
-transformer
-===========
+jresnet
+=======
 
 .. toctree::
    :maxdepth: 4

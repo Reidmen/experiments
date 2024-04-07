@@ -1,8 +1,10 @@
 from functools import partial
-from typing import Any, Callable, Type
+from typing import Callable, Sequence, Type
 from flax import linen as nn
 from jax import Array
-from jresnet.modules import ConvolutionBlock, ConvolutionObject
+from jax._src.typing import ArrayLike
+import jax.numpy as jnp
+from jresnet.modules import ConvolutionBlock
 
 STAGE_SIZES = {
     18: [2, 2, 2, 2],
@@ -31,7 +33,7 @@ class ResNetDeepBase(nn.Module):
     adaptive_first_width: bool = False
 
     @nn.compact
-    def __call__(self, x: Array) -> Callable[..., Array]:
+    def __call__(self, x: Array) -> Array:
         partial_convolution = partial(
             self.convolution_class,
             kernel_size=(3, 3),
@@ -47,3 +49,105 @@ class ResNetDeepBase(nn.Module):
         x = partial_convolution(self.base_width * 2, strides=(1, 1))(x)
 
         return x
+
+
+def identity_array_operator(x: Array) -> Array:
+    return x
+
+
+class ResNetSkipConnection(nn.Module):
+    strides: tuple[int, int]
+    convolution_block_class: Type[ConvolutionBlock] = ConvolutionBlock
+    identity: Callable[[Array], Array] = identity_array_operator
+
+    @nn.compact
+    def __call__(self, x: Array, output_shape: tuple[int, int]) -> Array:
+        if x.shape != output_shape:
+            x = self.convolution_block_class(
+                output_shape[-1],
+                kernel_size=(1, 1),
+                strides=self.strides,
+                activation=identity_array_operator,
+            )(x)
+
+        return x
+
+
+class ResNetBlock(nn.Module):
+    number_of_hidden: int
+    strides: tuple[int, int] = (1, 1)
+    activation: Callable[[ArrayLike], Array] = nn.relu
+    convolution_block_class: Type[ConvolutionBlock] = ConvolutionBlock
+    skip_class: Type[ResNetSkipConnection] = ResNetSkipConnection
+
+    @nn.compact
+    def __call__(self, x: Array) -> Array:
+        skip_class = partial(
+            self.skip_class,
+            convolution_block_class=self.convolution_block_class,
+        )
+        y = self.convolution_block_class(
+            self.number_of_hidden,
+            padding=((1, 1), (1, 1)),
+            strides=self.strides,
+        )(x)
+        y = self.convolution_block_class(
+            self.number_of_hidden, padding=((1, 1), (1, 1)), is_last=True
+        )(y)
+        return self.activation(y + skip_class(self.strides)(x, y.shape))
+
+
+def ResNetSequential(
+    block_class: Type[nn.Module],
+    stage_sizes: Sequence[int],
+    number_of_classes: int,
+    hidden_sizes: Sequence[int] = (64, 128, 256, 512),
+    convolution_block_class: Type[ConvolutionBlock] = ConvolutionBlock,
+    base_class: Type[ResNetBase] = ResNetBase,
+    norm_class: Type[nn.BatchNorm] | None = nn.BatchNorm,
+) -> nn.Sequential:
+    base = partial(base_class, convolution_block_class=convolution_block_class)
+    layers: list[nn.Module] = [base()]
+
+    for i, (hsize, number_blocks) in enumerate(zip(hidden_sizes, stage_sizes)):
+        for block_element in range(number_blocks):
+            strides: tuple[int, int] = (
+                (1, 1) if i == 0 or block_element != 0 else (2, 2)
+            )
+            block_to_add = block_class(
+                number_of_hidden=hsize,
+                strides=strides,
+                convolution_block_class=convolution_block_class,
+            )
+            layers.append(block_to_add)
+
+    layers.append(partial(jnp.mean, axis=(1, 2)))
+    layers.append(nn.Dense(number_of_classes))
+
+    return nn.Sequential(layers)
+
+
+def ResNet18(number_of_classes: int) -> nn.Sequential:
+    return ResNetSequential(
+        ResNetBlock,
+        stage_sizes=STAGE_SIZES[18],
+        number_of_classes=number_of_classes,
+    )
+def ResNet34(number_of_classes: int) -> nn.Sequential:
+    return ResNetSequential(
+        ResNetBlock,
+        stage_sizes=STAGE_SIZES[34],
+        number_of_classes=number_of_classes,
+    )
+def ResNet50(number_of_classes: int) -> nn.Sequential:
+    return ResNetSequential(
+        ResNetBlock,
+        stage_sizes=STAGE_SIZES[50],
+        number_of_classes=number_of_classes,
+    )
+def ResNet101(number_of_classes: int) -> nn.Sequential:
+    return ResNetSequential(
+        ResNetBlock,
+        stage_sizes=STAGE_SIZES[101],
+        number_of_classes=number_of_classes,
+    )

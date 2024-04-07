@@ -10,7 +10,7 @@ ConvolutionObject: TypeAlias = Callable[..., nn.Conv]
 
 
 class ConvolutionBlock(nn.Module):
-    numer_filters: int
+    number_filters: int
     kernel_size: tuple[int, int] = (3, 3)
     strides: tuple[int, int] = (1, 1)
     activation: Callable[..., Array] = nn.relu
@@ -24,12 +24,12 @@ class ConvolutionBlock(nn.Module):
     force_convolution_bias: bool = False
 
     @nn.compact
-    def __call__(self, x: Array, *args, **kwargs) -> Any:
+    def __call__(self, x: Array, *args, **kwargs) -> Array:
         super().__call__(*args, **kwargs)
         x = self.convolution_class(
-            self.numer_filters,
+            self.number_filters,
             self.kernel_size,
-            self.strides,
+            strides=self.strides,
             use_bias=(
                 not self.convolution_class or self.force_convolution_bias
             ),

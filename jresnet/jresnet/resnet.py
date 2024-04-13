@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Sequence, Type
+from typing import Any, Callable, Sequence, Type
 from flax import linen as nn
 from jax import Array
 from jax._src.typing import ArrayLike
@@ -97,8 +97,34 @@ class ResNetBlock(nn.Module):
         return self.activation(y + skip_class(self.strides)(x, y.shape))
 
 
+class ResNetBottleneckBlock(nn.Module):
+    number_of_hidden: int
+    strides: tuple[int, int] = (1, 1)
+    activation: Callable[[ArrayLike], Array] = nn.relu
+    convolution_block_class: Type[ConvolutionBlock] = ConvolutionBlock
+    skip_class: Type[nn.Module] = ResNetSkipConnection
+
+    @nn.compact
+    def __call__(self, x: Array) -> Array:
+        y = self.convolution_block_class(
+            self.number_of_hidden,
+            padding=[(1, 1), (1, 1)],
+            strides=self.strides,
+        )(x)
+        y = self.convolution_block_class(
+            self.number_of_hidden, padding=[(1, 1), (1, 1)], is_last=True
+        )(y)
+        return self.activation(
+            y
+            + self.skip_class(
+                self.strides,
+                convolution_block_class=self.convolution_block_class,
+            )(x, y.shape)
+        )
+
+
 def ResNetSequential(
-    block_class: Type[nn.Module],
+    block_class: Type[ResNetBlock | ResNetBottleneckBlock],
     stage_sizes: Sequence[int],
     number_of_classes: int,
     hidden_sizes: Sequence[int] = (64, 128, 256, 512),
@@ -106,8 +132,10 @@ def ResNetSequential(
     base_class: Type[ResNetBase] = ResNetBase,
     norm_class: Type[nn.BatchNorm] | None = nn.BatchNorm,
 ) -> nn.Sequential:
-    base = partial(base_class, convolution_block_class=convolution_block_class)
-    layers: list[nn.Module] = [base()]
+    resnet_base = partial(
+        base_class, convolution_block_class=convolution_block_class
+    )
+    layers: list[Callable[..., Array] | nn.Module] = [resnet_base()]
 
     for i, (hsize, number_blocks) in enumerate(zip(hidden_sizes, stage_sizes)):
         for block_element in range(number_blocks):
@@ -132,22 +160,49 @@ def ResNet18(number_of_classes: int) -> nn.Sequential:
         ResNetBlock,
         stage_sizes=STAGE_SIZES[18],
         number_of_classes=number_of_classes,
+        base_class=ResNetBase,
     )
+
+
 def ResNet34(number_of_classes: int) -> nn.Sequential:
     return ResNetSequential(
         ResNetBlock,
         stage_sizes=STAGE_SIZES[34],
         number_of_classes=number_of_classes,
+        base_class=ResNetBase,
     )
+
+
 def ResNet50(number_of_classes: int) -> nn.Sequential:
     return ResNetSequential(
         ResNetBlock,
         stage_sizes=STAGE_SIZES[50],
         number_of_classes=number_of_classes,
     )
+
+
 def ResNet101(number_of_classes: int) -> nn.Sequential:
     return ResNetSequential(
-        ResNetBlock,
+        ResNetBottleneckBlock,
         stage_sizes=STAGE_SIZES[101],
         number_of_classes=number_of_classes,
+        base_class=ResNetBase,
+    )
+
+
+def ResNet152(number_of_classes: int) -> nn.Sequential:
+    return ResNetSequential(
+        ResNetBottleneckBlock,
+        stage_sizes=STAGE_SIZES[152],
+        number_of_classes=number_of_classes,
+        base_class=ResNetBase,
+    )
+
+
+def ResNet200(number_of_classes: int) -> nn.Sequential:
+    return ResNetSequential(
+        ResNetBottleneckBlock,
+        stage_sizes=STAGE_SIZES[200],
+        number_of_classes=number_of_classes,
+        base_class=ResNetBase,
     )

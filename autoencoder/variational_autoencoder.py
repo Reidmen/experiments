@@ -1,8 +1,6 @@
 from functools import partial
-from typing import Any, Callable, Sequence, assert_type
+from typing import Callable, Sequence
 from jax._src.random import KeyArray
-from numpy import who
-from optax._src.base import OptState
 from typing_extensions import Self
 
 import optax
@@ -10,7 +8,6 @@ import jax
 import flax
 from jax._src.basearray import ArrayLike
 import flax.linen as nn
-import optax
 
 import torchvision.transforms as TorchTransforms
 from torchvision.datasets import MNIST

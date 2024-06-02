@@ -275,9 +275,7 @@ class Embedding(Module):
     This maintains embeddings by id.
     """
 
-    def __init__(
-        self, rnd_key: KeyArray, n_embeddings: int, n_dim: int
-    ) -> None:
+    def __init__(self, rnd_key: KeyArray, n_embeddings: int, n_dim: int) -> None:
         """
         :param `rnd_key`: is the PRNG state
         :param `n_embeddings`: is the number of embeddings
@@ -443,9 +441,7 @@ class PrepareForMultiHeadAttention(Module):
     This is used to transform **key**, **query**, and **value** vectors.
     """
 
-    def __init__(
-        self, rnd_key: KeyArray, d_model: int, heads: int, d_k: int
-    ) -> None:
+    def __init__(self, rnd_key: KeyArray, d_model: int, heads: int, d_k: int) -> None:
         super().__init__()
         # Linear layer for linear transform
         self.linear = Linear(rnd_key, d_model, heads * d_k)
@@ -510,15 +506,9 @@ class MultiHeadAttention(Module):
         self.heads = heads
 
         # These transform the `query`, `key` and `value` vectors for multi-headed attention.
-        self.query = PrepareForMultiHeadAttention(
-            rnd_keys[0], d_model, heads, self.d_k
-        )
-        self.key = PrepareForMultiHeadAttention(
-            rnd_keys[1], d_model, heads, self.d_k
-        )
-        self.value = PrepareForMultiHeadAttention(
-            rnd_keys[2], d_model, heads, self.d_k
-        )
+        self.query = PrepareForMultiHeadAttention(rnd_keys[0], d_model, heads, self.d_k)
+        self.key = PrepareForMultiHeadAttention(rnd_keys[1], d_model, heads, self.d_k)
+        self.value = PrepareForMultiHeadAttention(rnd_keys[2], d_model, heads, self.d_k)
 
         # Output layer
         self.output = Linear(rnd_keys[3], d_model, d_model)
@@ -874,9 +864,7 @@ class Adam:
         # Increment step $t$
         self._n_steps += 1
         # Update states for each parameter
-        self.states = jax.tree_multimap(
-            self._update_state_jit, grads, self.states
-        )
+        self.states = jax.tree_multimap(self._update_state_jit, grads, self.states)
         # Return updated parameters $\theta_t$
         return jax.tree_multimap(
             partial(self._step_jit, self._n_steps), params, self.states
@@ -925,9 +913,7 @@ class Adam:
 class TinyShakespeare:
     """Tiny Shakespeare dataset"""
 
-    def __init__(
-        self, rnd_key: KeyArray, seq_len: int, batch_size: int
-    ) -> None:
+    def __init__(self, rnd_key: KeyArray, seq_len: int, batch_size: int) -> None:
         """
         * `rnd_key` is the PRNG state
         * `seq_len` is the sequence length of a sample
@@ -999,9 +985,7 @@ class TinyShakespeare:
 
         # Sample indexes for the batch
         idx = self.idx[
-            self._iter_idx
-            * self.batch_size : (self._iter_idx + 1)
-            * self.batch_size
+            self._iter_idx * self.batch_size : (self._iter_idx + 1) * self.batch_size
         ]
         # Increment iteration step
         self._iter_idx += 1

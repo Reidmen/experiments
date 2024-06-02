@@ -40,9 +40,7 @@ class ResNetDeepBase(nn.Module):
             padding=((1, 1), (1, 1)),
         )
         first_width = (
-            (8 * (x.shape[-1] + 1))
-            if self.adaptive_first_width
-            else self.base_width
+            (8 * (x.shape[-1] + 1)) if self.adaptive_first_width else self.base_width
         )
         x = partial_convolution(first_width, strides=(2, 2))(x)
         x = partial_convolution(self.base_width, strides=(1, 1))(x)
@@ -132,9 +130,7 @@ def ResNetSequential(
     base_class: Type[ResNetBase] = ResNetBase,
     norm_class: Type[nn.BatchNorm] | None = nn.BatchNorm,
 ) -> nn.Sequential:
-    resnet_base = partial(
-        base_class, convolution_block_class=convolution_block_class
-    )
+    resnet_base = partial(base_class, convolution_block_class=convolution_block_class)
     layers: list[Callable[..., Array] | nn.Module] = [resnet_base()]
 
     for i, (hsize, number_blocks) in enumerate(zip(hidden_sizes, stage_sizes)):

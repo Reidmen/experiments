@@ -19,9 +19,7 @@ def compute_analytical_solution(
     X: NDarray64, Y: NDarray64, Lx: float, Ly: float
 ) -> NDarray64:
     """Computes analytical_solution solution used as reference."""
-    return np.array(
-        np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly), dtype=np.float64
-    )
+    return np.array(np.sin(np.pi * X / Lx) * np.cos(np.pi * Y / Ly), dtype=np.float64)
 
 
 def add_boundary_conditions(
@@ -45,16 +43,12 @@ def laplacian_operator(
     Returns:
         discrete laplacian operator as NDarray64
     """
-    return (
-        -2.0 * array[1:-1, 1:-1] + array[1:-1, :-2] + array[1:-1, 2:]
-    ) / dx / dx + (
+    return (-2.0 * array[1:-1, 1:-1] + array[1:-1, :-2] + array[1:-1, 2:]) / dx / dx + (
         -2.0 * array[1:-1, 1:-1] + array[:-2, 1:-1] + array[2:, 1:-1]
     ) / dy / dy
 
 
-def compute_residual(
-    residual: NDarray64, array: NDarray64, rhs: NDarray64
-) -> None:
+def compute_residual(residual: NDarray64, array: NDarray64, rhs: NDarray64) -> None:
     """Performs computation of residual `r = b - Ax`
 
     Parameters:
@@ -64,9 +58,7 @@ def compute_residual(
     residual[1:-1, 1:-1] = rhs[1:-1, 1:-1] - laplacian_operator(array)
 
 
-def compute_laplacian_on_array(
-    operator_holder: NDarray64, array: NDarray64
-) -> None:
+def compute_laplacian_on_array(operator_holder: NDarray64, array: NDarray64) -> None:
     """Performs laplacian computation on array in the coordinates
     of interest
 
@@ -108,9 +100,7 @@ def SteppestDescent(
         solution_k = solution.copy()
         compute_residual(residual, solution, rhs)
         compute_laplacian_on_array(operator_on_residual, residual)
-        alpha = np.sum(residual * residual) / np.sum(
-            residual * operator_on_residual
-        )
+        alpha = np.sum(residual * residual) / np.sum(residual * operator_on_residual)
         solution = solution_k + alpha * residual
         diff = compute_norm_to_reference(solution, solution_k)
         history.append(diff)
@@ -152,9 +142,7 @@ def ConjugateGradientDescent(
         solution_k: NDarray64 = solution.copy()
         residual_k: NDarray64 = residual.copy()
         compute_laplacian_on_array(operator_dot_direction, direction)
-        alpha = np.sum(residual * residual) / np.sum(
-            direction * operator_dot_direction
-        )
+        alpha = np.sum(residual * residual) / np.sum(direction * operator_dot_direction)
         # update solution and residual
         solution = solution_k + alpha * direction
         residual = residual_k - alpha * operator_dot_direction
@@ -237,9 +225,7 @@ def test_compute_analytical_solution(
     X, Y = np.meshgrid(x, y)
     analytical_solution = compute_analytical_solution(X, Y, Lx, Ly)
     path_to_test.mkdir(parents=True, exist_ok=True)
-    path_to_png = path_to_test.joinpath(
-        f"analytical_solution_dx{dx}_dy{dy}.png"
-    )
+    path_to_png = path_to_test.joinpath(f"analytical_solution_dx{dx}_dy{dy}.png")
     save_array_to_png(X, Y, analytical_solution, path_to_png)
 
 
@@ -261,9 +247,7 @@ def test_conjugate_gradient(
         solution, analytical_solution
     )
     path_to_test.mkdir(parents=True, exist_ok=True)
-    path_to_png = path_to_test.joinpath(
-        f"test_conjugate_gradient_dx{dx}_dy{dy}.png"
-    )
+    path_to_png = path_to_test.joinpath(f"test_conjugate_gradient_dx{dx}_dy{dy}.png")
     save_array_to_png(X, Y, solution, path_to_png)
     print(
         f"CG converged in {iterations}\n"
@@ -283,9 +267,7 @@ def test_gradient_descent(
     rhs = create_rhs_for_analytical_solution(X, Y, Lx, Ly)
     max_iter, rtol = 20000, 1e-8
 
-    solution, iterations, history = SteppestDescent(
-        solution, rhs, max_iter, rtol
-    )
+    solution, iterations, history = SteppestDescent(solution, rhs, max_iter, rtol)
     analytical_solution = compute_analytical_solution(X, Y, Lx, Ly)
     error_to_reference = compute_absolute_error_difference(
         solution, analytical_solution
@@ -302,9 +284,7 @@ def test_gradient_descent(
     )
 
 
-def create_specific_rhs(
-    X: NDarray64, Y: NDarray64, Lx: float, Ly: float
-) -> NDarray64:
+def create_specific_rhs(X: NDarray64, Y: NDarray64, Lx: float, Ly: float) -> NDarray64:
     """Creates complex sinusoidal right-hand side"""
     rhs_array = np.array(
         np.sin(np.pi * X / Lx) * np.sin(np.pi * Y / Ly)
@@ -357,10 +337,7 @@ def test_conjugate_gradient_specific_rhs(
     solution, iterations, history = ConjugateGradientDescent(
         solution, rhs_array, max_iter, rtol
     )
-    print(
-        f"CG converged in {iterations}\n"
-        f"with relative tolerance {history[-1]}\n"
-    )
+    print(f"CG converged in {iterations}\n" f"with relative tolerance {history[-1]}\n")
     save_solution(solution, X, Y, M, N, path_to_file)
 
 
@@ -376,12 +353,8 @@ def save_solution(
     otherwise it creates a new one."""
     if isinstance(path_to_file, str):
         pathlib.Path(path_to_file).mkdir(parents=True, exist_ok=True)
-        path_to_figure = pathlib.Path(path_to_file).joinpath(
-            f"solution_M{M}_N{N}.png"
-        )
-        path_to_csv = pathlib.Path(path_to_file).joinpath(
-            f"solution_M{M}_N{N}.csv"
-        )
+        path_to_figure = pathlib.Path(path_to_file).joinpath(f"solution_M{M}_N{N}.png")
+        path_to_csv = pathlib.Path(path_to_file).joinpath(f"solution_M{M}_N{N}.csv")
     elif isinstance(path_to_file, pathlib.Path):
         path_to_figure = path_to_file.joinpath(f"solution_M{M}_N{N}.png")
         path_to_csv = path_to_file.joinpath(f"solution_M{M}_N{N}.csv")

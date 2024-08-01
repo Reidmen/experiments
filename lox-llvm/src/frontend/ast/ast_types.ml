@@ -11,3 +11,27 @@ module type Id = sig
   val to_string : t -> string
   val ( = ) : t -> t -> bool
 end
+
+type mode =
+  | Linear
+  | ThreadLocal
+  | Read
+  | Locked
+  | ThreadSafe
+  | Subordinate
+  | Encapsulated
+
+let string_to_mode = function
+  | Linear -> "Linear"
+  | ThreadLocal -> "ThreadLocal"
+  | Read -> "Read"
+  | Locked -> "Locked"
+  | ThreadSafe -> "ThreadSafe"
+  | Subordinate -> "Subordinate"
+  | Encapsulated -> "Encapsulated"
+
+type modifier = MutableConst | MutableVar
+
+let string_to_modifier = function
+  | MutableConst -> "Const"
+  | MutableVar -> "Var"

@@ -1,3 +1,4 @@
+use core::panic;
 use std::{iter::Peekable, usize};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -111,6 +112,86 @@ impl<S: Iterator<Item = char>> Tokenizer<S> {
 impl<S: Iterator<Item = char>> Iterator for Tokenizer<S> {
     type Item = Token;
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if let Some(c) = self.consume() {
+            match c {
+                '(' => Some(self.produce_token(TokenKind::LeftParentesis)),
+                ')' => Some(self.produce_token(TokenKind::RightParentesis)),
+                '{' => Some(self.produce_token(TokenKind::LeftBracelet)),
+                '}' => Some(self.produce_token(TokenKind::RightBracelet)),
+                ',' => Some(self.produce_token(TokenKind::Comma)),
+                '.' => Some(self.produce_token(TokenKind::Dot)),
+                '-' => Some(self.produce_token(TokenKind::Minus)),
+                '+' => Some(self.produce_token(TokenKind::Plus)),
+                '\n' => {
+                    self.col = 0;
+                    self.line += 1;
+                    self.next()
+                }
+                c if c.is_ascii_digit() => {
+                    let mut literal = c.to_string();
+                    while let Some(&c) = self.source.peek() {
+                        if c.is_ascii_digit() || c == '.' {
+                            self.consume();
+                            literal.push(c);
+                        } else {
+                            break;
+                        }
+                    }
+                    Some(self.produce_token_with_value(TokenKind::NumberLiteral, literal))
+                }
+                c if c.is_ascii_alphabetic() => {
+                    todo!()
+                }
+                c if c.is_ascii_whitespace() => self.next(),
+                _ => panic!("Unexpected character at {}:{}", self.line, self.col),
+            }
+        } else {
+            Some(self.produce_token(TokenKind::EOF))
+        }
+    }
+}
+
+pub trait Tokenize {
+    fn tokens(self) -> Tokenizer<Self>
+    where
+        Self: Iterator<Item = char> + Sized;
+}
+
+impl<I> Tokenize for I
+where
+    I: Iterator<Item = char>,
+{
+    fn tokens(self) -> Tokenizer<Self> {
+        Tokenizer {
+            source: self.peekable(),
+            line: 1,
+            col: 0,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::scanner::{TokenKind, Tokenize};
+
+    #[test]
+    fn empty() {
+        assert_eq!(
+            "".chars().tokens().map(|t| t.kind).collect::<Vec<_>>(),
+            vec![TokenKind::EOF]
+        );
+    }
+
+    #[test]
+    fn simple_tokens() {
+        assert_eq!(
+            "{*}".chars().tokens().map(|t| t.kind).collect::<Vec<_>>(),
+            vec![
+                TokenKind::LeftBracelet,
+                TokenKind::Star,
+                TokenKind::RightBracelet,
+                TokenKind::EOF
+            ]
+        )
     }
 }

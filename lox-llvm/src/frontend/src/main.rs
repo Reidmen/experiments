@@ -1,3 +1,4 @@
+mod ast;
 mod scanner;
 
 fn main() {

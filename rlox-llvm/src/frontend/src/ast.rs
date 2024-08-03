@@ -24,6 +24,23 @@ pub enum Operator {
     Divide,
 }
 
+impl std::fmt::Display for Operator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operator::Equal => write!(f, "=="),
+            Operator::NotEqual => write!(f, "!="),
+            Operator::Less => write!(f, "<"),
+            Operator::LessOrEqual => write!(f, "<="),
+            Operator::Greater => write!(f, ">"),
+            Operator::GreaterOrEqual => write!(f, ">="),
+            Operator::Plus => write!(f, "+"),
+            Operator::Minus => write!(f, "-"),
+            Operator::Multiply => write!(f, "*"),
+            Operator::Divide => write!(f, "/"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum UnaryOperator {
     Not,

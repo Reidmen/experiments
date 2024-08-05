@@ -35,3 +35,19 @@ type Token struct {
 func (t Token) String() string {
 	return fmt.Sprintf("%d %s %d", t.TokenType, t.Lexer, t.Literal)
 }
+
+type StatementVisitor interface {
+	VisitBlockStatement(stmt BlockStatement) interface{}
+	VisitClassStatement(stmt ClassStatement) interface{}
+	VisitExpressionStatement(stmt ExpressionStatement) interface{}
+}
+
+type Statement interface {
+	Accept(visitor StatementVisitor) interface{}
+	StartLine() int
+	EndLine() int
+}
+
+type BlockStatement struct {
+	statements []Statement
+}

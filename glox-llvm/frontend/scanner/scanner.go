@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"fmt"
 	"frontend/ast"
 	"io"
 )
@@ -28,7 +29,8 @@ func (s *Scanner) scanTokens() []ast.Token {
 	return s.tokens
 }
 
-func (s *Scanner) isAtEnd() bool { return s.current >= len(s.source) }
+func (s *Scanner) isAtEnd() bool       { return s.current >= len(s.source) }
+func (s *Scanner) isDigit(r rune) bool { return r >= '0' && r <= '9' }
 
 func (s *Scanner) advance() rune {
 	curr := rune(s.source[s.current])
@@ -50,4 +52,38 @@ func (s *Scanner) addTokenWithLiteral(tokenType ast.TokenType, literal interface
 		Start:     s.start,
 	}
 	s.tokens = append(s.tokens, token)
+}
+
+func (s *Scanner) scanToken() {
+	char := s.advance()
+	switch char {
+	case '(':
+		s.addToken(ast.TokenLeftParentesis)
+	case ')':
+		s.addToken(ast.TokenRightParentesis)
+	case '{':
+		s.addToken(ast.TokenLeftBracelet)
+	case '}':
+		s.addToken(ast.TokenRightBracelet)
+	case '[':
+		s.addToken(ast.TokenLeftBracket)
+	case ']':
+		s.addToken(ast.TokenRightBracket)
+	case ',':
+		s.addToken(ast.TokenComma)
+	case '.':
+		s.addToken(ast.TokenDot)
+	case '-':
+		s.addToken(ast.TokenMinus)
+	case '+':
+		s.addToken(ast.TokenPlus)
+	case ';':
+		s.addToken(ast.TokenSemicolon)
+	case ':':
+		s.addToken(ast.TokenColon)
+	}
+}
+
+func (s *Scanner) error(message string) {
+	_, _ = s.stdError.Write([]byte(fmt.Sprintf("[line %d] Error: %s]n", s.line, message)))
 }

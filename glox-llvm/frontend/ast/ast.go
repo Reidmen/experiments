@@ -1,6 +1,23 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type Type interface{}
+type ArrayType struct{ Types []Type }
+type SingleArray struct {
+	Name        string
+	GenericArgs []Type
+}
+type UnionType struct {
+	Left  Type
+	Right Type
+}
+type Parameters struct {
+	Token Token
+	Type  Type
+}
 
 type TokenType uint8
 
@@ -50,4 +67,30 @@ type Statement interface {
 
 type BlockStatement struct {
 	statements []Statement
+}
+
+type ClassStatement struct {
+	Name       Token
+	Superclass *VariableExpression
+	Init       *FunctionStatement
+	Methods    []FunctionStatement
+	Fields     []Field
+	LineStart  int
+	LineEnd    int
+}
+
+func (b ClassStatement) StartLine() int { return b.LineStart }
+func (b ClassStatement) EndLine() int   { return b.LineEnd }
+
+type Field struct {
+	Name  Token
+	Value Expression
+	Type  Type
+}
+
+type FunctionStatement struct {
+	Name       Token
+	Params     []Parameters
+	Body       []Statement
+	ReturnType Type
 }

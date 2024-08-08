@@ -1,7 +1,7 @@
 # This is Glox-LLVM Language
 This library implements the `glox` language using go for the frontend and LLVM as backend for the IR.
 
-The frontend is defined as the tree-walking type-checker, while the backend includes the protobuf (language-neutral serialization of the tree-walking data) and the LLVM IR of the protobut-generated data.
+The frontend is defined as the tree-walking type-checker, while the backend includes the [protobuf](https://protobuf.dev/overview/) (language-neutral serialization of the tree-walking data) and the LLVM IR of the protobut-generated data.
 
 It's a work in progress, extensive implementation is needed.
 
